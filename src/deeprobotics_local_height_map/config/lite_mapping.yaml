@@ -1,0 +1,72 @@
+# 给真实 Lite3 + RealSense 用
+# Coordinate frames.
+# 
+map_frame_id: odom
+robot_base_frame_id: base_link
+robot_pose_with_covariance_topic: /leg_odom
+robot_pose_cache_size: 200
+
+# Point cloud input sources for ANYbotics/elevation_mapping.
+input_sources:
+  realsense:
+    type: pointcloud
+    topic: /camera/depth/color/points
+    queue_size: 1
+    publish_on_update: true
+    sensor_processor:
+      type: structured_light
+      cutoff_min_depth: 0.2
+      cutoff_max_depth: 2.5
+      normal_factor_a: 0.000611
+      normal_factor_b: 0.003587
+      normal_factor_c: 0.3515
+      normal_factor_d: 0.0
+      normal_factor_e: 1.0
+      lateral_factor: 0.01576
+      ignore_points_above: 0.7
+      ignore_points_below: -0.35
+      apply_voxelgrid_filter: true
+      voxelgrid_filter_size: 0.03
+
+# The local map follows the robot base.
+track_point_frame_id: base_link
+track_point_x: 0.0
+track_point_y: 0.0
+track_point_z: 0.0
+
+# Update timing.
+min_update_rate: 5.0
+time_tolerance: 0.5
+time_offset_for_point_cloud: 0.0
+
+# Local elevation map geometry.
+length_in_x: 4.0
+length_in_y: 4.0
+position_x: 0.0
+position_y: 0.0
+resolution: 0.04
+
+# Elevation fusion parameters.
+min_variance: 0.0001
+max_variance: 0.05
+mahalanobis_distance_threshold: 2.5
+multi_height_noise: 0.001
+
+# Publishing and cleanup.
+fused_map_publishing_rate: 5.0
+enable_visibility_cleanup: false
+visibility_cleanup_rate: 1.0
+scanning_duration: 0.033
+
+# Output topics.
+# Because elevation_mapping uses a private NodeHandle "~",
+# these relative names become:
+#   /elevation_mapping/elevation_map_raw
+#   /elevation_mapping/elevation_map
+output_topic: elevation_map_raw
+
+# Motion uncertainty.
+robot_motion_map_update/covariance_scale: 0.01
+
+# Initialization.
+initialize_elevation_map: false

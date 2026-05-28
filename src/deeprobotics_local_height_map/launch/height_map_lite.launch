@@ -1,0 +1,196 @@
+<!-- odom -> base_link -> camera_link -> camera_depth_optical_frame -->
+
+<launch>
+    <!-- 
+    camera_pose：相机安装方式
+        可选值理论上有：
+        1. vertical：竖放
+        2. horizontal：横放
+        但是注意：
+        当前 launch 文件里只写了 horizontal 对应的 group，
+        没有写 vertical 的 group。
+        所以默认值是 horizontal。
+        如果启动时设置 camera_pose:=vertical，
+        当前文件不会启动高度地图节点
+     -->
+    <arg name="camera_pose" default="horizontal" />
+    <!-- 是否打开可视化界面Rviz --> 
+    <arg name="enable_rviz" default="true" />
+    <!-- 是否打开机器人urdf模型 -->
+    <arg name="enable_urdf" default="false" />
+    <!-- 是否在Rviz中显示足底轨迹 -->
+    <arg name="enable_joint_path" default="false" />
+    <!-- 是否打开运动传输程序 -->
+    <arg name="enable_transformer" default="false" />
+    <!-- 是否使用数据集运行（且没有相机tf） -->
+    <arg name="enable_camera_optical_tf" default="false" />
+    <!-- 是否打开地形图传输程序 -->
+    <arg name="enable_gridmap_transformer" default="false" />
+    <!-- 是否打开安全停避障 -->
+    <arg name="enable_safety" default="false" />
+    <!-- 是否计算四边形约束 -->
+    <arg name="enable_quadrangels" default="false" />
+
+    <!-- 
+        ROS 日志配置文件，当前被注释掉，不生效。
+        如果打开，可以通过 setting.conf 控制 ROS 日志输出级别、格式等。
+    -->
+    <!-- <env name="ROSCONSOLE_CONFIG_FILE" value="$(find deeprobotics_local_height_map)/config/setting.conf"/> -->
+
+    <!-- ================================================================ -->
+    <!-- 相机横放 horizontal 情况 -->
+    <!-- ================================================================ -->
+    <group if="$(eval arg('camera_pose') == 'horizontal')">
+      <!-- 
+          启动局部高度地图节点。
+          pkg="deeprobotics_local_height_map"
+          表示节点来自 deeprobotics_local_height_map 这个 ROS 包。
+          type="deeprobotics_local_height_map_for_safety"
+          表示实际启动的可执行程序名。
+          name="deeprobotics_local_height_map_for_safety"
+          表示 ROS 节点名。
+          output="screen"
+          表示把节点日志输出到终端。
+      -->
+      <!-- <node pkg="deeprobotics_local_height_map" type="deeprobotics_local_height_map_for_safety" name="deeprobotics_local_height_map_for_safety" output="screen">
+        <rosparam command="load" file="$(find deeprobotics_local_height_map)/config/param_all_camera_h_safety.yaml" />
+      </node> -->
+      <node pkg="elevation_mapping" type="elevation_mapping" name="elevation_mapping" output="screen">
+        <rosparam command="load" file="$(find deeprobotics_local_height_map)/config/lite_mapping.yaml" />
+      </node>
+      <!-- Publish odom -> base_link TF from /leg_odom for elevation_mapping. -->
+      <node pkg="deeprobotics_local_height_map" type="publish_leg_odom_tf" name="publish_leg_odom_tf" output="screen">
+        <param name="odom_topic" value="/leg_odom" />
+        <param name="parent_frame" value="odom" />
+        <param name="child_frame" value="base_link" />
+      </node>
+      <!-- 发布静态TF变换，关系对吗？？？？ -->
+      <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base2camera" args="0.15 0.0 0 0 0.349 0 /base_link /camera_link" /> -->
+      <!-- 原始写法保留：TF frame_id 不建议带前导 /，否则容易和 base_link、camera_link 这类无 / frame 名不一致。 -->
+      <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base2camera" args="0.15 0.0 0 0 0.349 0 /base_link /camera_link" /> -->
+      <node pkg="tf2_ros" type="static_transform_publisher" name="base2camera" args="0.25228 -0.00050 0.07410 0 0.349 0 base_link camera_link" />
+    </group>
+
+    <!-- ================================================================ -->
+    <!-- 安全停止 / 避障模块 -->
+    <!-- ================================================================ -->
+    <group if="$(arg enable_safety)">
+      <!-- <node pkg="deeprobotics_local_height_map" name="vel_control_node" type="vel_control_node" output="screen">
+        <rosparam command="load" file="$(find deeprobotics_local_height_map)/config/control_x20.yaml" />
+      </node> -->
+      <node pkg="deeprobotics_local_height_map" name="safety_node" type="safety_node"  output="screen">
+        <!-- 
+            加载高度地图参数文件。
+            $(find deeprobotics_local_height_map)
+            会自动找到 deeprobotics_local_height_map 包的路径。
+            param_all_camera_h_safety.yaml：
+            h 大概率表示 horizontal，即横放相机版本参数。
+            safety 表示这是给安全避障场景用的参数。
+        -->
+        <rosparam command="load" file="$(find deeprobotics_local_height_map)/config/safety.yaml" />
+      </node>
+    </group>
+
+    <!-- ================================================================ -->
+    <!-- 四边形约束 / 平面分割模块（未开发） -->
+    <!-- ================================================================ -->
+    <group if="$(arg enable_quadrangels)">
+      <!-- 
+          启动 plane_seg_ros 节点。
+          plane_seg：plane segmentation，平面分割。
+          可能用于从点云或高度地图中提取地面平面、障碍边界、
+          可通行区域或四边形约束区域。
+          当前默认 enable_quadrangels=false，所以默认不启动。
+      -->
+      <node name="plane_seg" pkg="plane_seg_ros" type="plane_seg_ros" output="screen"> </node>
+    </group>
+
+    <!-- ================================================================ -->
+    <!-- UDP / 运动数据传输程序 -->
+    <!-- ================================================================ -->
+    <!-- 原始 transformer 启动方式：ros2qnx 会直接订阅 cmd_vel 和 cmd_vel_corrected。 -->
+    <!-- <group if="$(arg enable_transformer)">
+      <include file="$(find message_transformer)/launch/message_transformer.launch" />
+    </group> -->
+    <!-- 未启用 VOA 安全避障时，保持原始速度链路。 -->
+    <group if="$(arg enable_transformer)">
+      <!-- 未启用避障 -->
+      <group unless="$(arg enable_safety)">
+        <include file="$(find message_transformer)/launch/message_transformer.launch" />
+      </group>
+
+      <!-- 启用 VOA 安全避障时，禁止 ros2qnx 直接接收 /cmd_vel。 -->
+      <group if="$(arg enable_safety)">
+        <!-- 拦截 ros2qnx 的 cmd_vel 订阅请求，重定向到了 /cmd_vel_disabled_by_voa -->
+        <remap from="cmd_vel" to="/cmd_vel_disabled_by_voa" />
+        <include file="$(find message_transformer)/launch/message_transformer.launch" />
+      </group>
+    </group>
+    
+    <!-- ================================================================ -->
+    <!-- 地形图传输程序 -->
+    <!-- ================================================================ -->
+    <group if="$(arg enable_gridmap_transformer)">
+      <node pkg="deeprobotics_grid_map_transformer" type="grid_map_transform_app" name="grid_map_transform_app" />
+    </group>
+
+    <!--发布相机静态TF变换-->
+    
+    <!-- ================================================================ -->
+    <!-- URDF 机器人模型 -->
+    <!-- ================================================================ -->
+    <group if="$(arg enable_urdf)">
+      <!-- 
+          发布 base_link 到 dummy 的静态 TF。
+          dummy 可能是 URDF 模型中的一个辅助坐标系，
+          用来把真实机器人 base_link 与 URDF 模型根节点连接起来。
+      -->
+      <!-- 原始写法保留：TF frame_id 统一不带前导 /。 -->
+      <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base2urdf" args="0 0 0 0 0 0 /base_link /dummy" /> -->
+      <node pkg="tf2_ros" type="static_transform_publisher" name="base2urdf" args="0 0 0 0 0 0 base_link dummy" />
+      <!-- 
+          将 Lite3.urdf 文件加载到 ROS 参数服务器中的 robot_description 参数。voa/src/models/Lite3/Lite3/Lite3.urdf
+          robot_description 是 ROS 机器人模型的标准参数名。
+          robot_state_publisher 会从这里读取机器人连杆和关节结构。
+      -->
+      <param name="robot_description" textfile="$(find lite3)/Lite3/Lite3.urdf" />
+      <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+      <!-- 
+          robot_state_publisher：ROS 官方自带的核心功能包
+          根据 URDF 模型和 /joint_states 关节状态，
+          发布机器人各连杆之间的 TF。
+          注意：
+          这里 type="robot_state_publisher"。
+          在有些旧 launch 文件中可能写成 type="state_publisher"，
+          但 Noetic 常见可执行文件名是 robot_state_publisher。
+      -->
+      <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    </group>
+  
+    <!-- ================================================================ -->
+    <!-- 足底 / 关节轨迹绘制 -->
+    <!-- ================================================================ -->
+    <!-- joint path -->
+    <group if="$(arg enable_joint_path)">
+      <!-- 
+          启动 draw 节点。deeprobotics_local_height_map功能包下
+          可能用于在 RViz 中绘制：
+          1. 足端轨迹
+          2. 关节运动轨迹
+          3. 机器人运动路径
+          4. 高度地图辅助显示信息
+          当前默认 enable_joint_path=false，所以默认不启动。
+      -->
+      <node name="draw" pkg="deeprobotics_local_height_map" type="draw"  output="screen" />
+    </group>
+
+    <!-- RVIZ -->
+    <group if="$(arg enable_rviz)">
+      <!-- 原始旧 RViz 配置保留，当前话题已不匹配。 -->
+      <!-- node name="rviz" pkg="rviz" type="rviz" args="-d $(find deeprobotics_local_height_map)/rviz/safety_control_assist.rviz" /-->
+      <node name="rviz" pkg="rviz" type="rviz" args="-d $(find deeprobotics_local_height_map)/rviz/voa_safety.rviz" />
+    </group>
+
+</launch>
+
+

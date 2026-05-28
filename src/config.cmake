@@ -1,0 +1,20 @@
+SET(CMAKE_INSTALL_PREFIX "/home/ysc/lite_cog/obstacle-avoidance")
+
+set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
+set(CPACK_PACKAGE_VERSION_MAJOR "1")
+set(CPACK_PACKAGE_VERSION_MINOR "0")
+set(CPACK_PACKAGE_VERSION_PATCH "0")
+set(CPACK_GENERATOR "DEB")
+if(DEFINED CROSS_COMPILE)
+    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "arm64")
+    set(CPACK_PACKAGE_NAME "obstacle-avoidance-arm64")
+else()
+    set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+    set(CPACK_PACKAGE_NAME "obstacle-avoidance-amd64")
+endif()
+set(CPACK_DEBIAN_PACKAGE_NAME "obstacle-avoidance")
+set(CPACK_PACKAGE_CONTACT "deeprobotic.cn")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "deeprobotic.cn")
+
+INCLUDE(CPack)
+

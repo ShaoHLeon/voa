@@ -1,0 +1,43 @@
+<launch>
+  <!--
+    RealSense + elevation_mapping 组合启动文件。
+
+    使用前必须先 source RealSense 工作空间：
+      source ../drivers/realsense_ws/devel/setup.bash
+
+    原理：
+    1. realsense2_camera 负责发布 /camera/depth/color/points
+    2. realsense2_camera 负责发布 camera_link -> camera_depth_optical_frame
+    3. height_map_lite.launch 负责发布 base_link -> camera_link
+    4. publish_leg_odom_tf 负责发布 odom -> base_link
+  -->
+
+  <arg name="camera_pose" default="horizontal" />
+  <arg name="enable_rviz" default="true" />
+  <arg name="enable_urdf" default="false" />
+  <arg name="enable_joint_path" default="false" />
+  <arg name="enable_transformer" default="false" />
+  <arg name="enable_gridmap_transformer" default="false" />
+  <arg name="enable_safety" default="false" />
+  <arg name="enable_quadrangels" default="false" />
+
+  <!-- 启动 RealSense，相机点云作为 elevation_mapping 的输入。 -->
+  <include file="$(find realsense2_camera)/launch/dr_camera.launch">
+    <arg name="enable_pointcloud" value="true" />
+    <arg name="align_depth" value="false" />
+    <arg name="publish_tf" value="true" />
+    <arg name="tf_publish_rate" value="0" />
+  </include>
+
+  <!-- 启动高度图主流程。 -->
+  <include file="$(find deeprobotics_local_height_map)/launch/height_map_lite.launch">
+    <arg name="camera_pose" value="$(arg camera_pose)" />
+    <arg name="enable_rviz" value="$(arg enable_rviz)" />
+    <arg name="enable_urdf" value="$(arg enable_urdf)" />
+    <arg name="enable_joint_path" value="$(arg enable_joint_path)" />
+    <arg name="enable_transformer" value="$(arg enable_transformer)" />
+    <arg name="enable_gridmap_transformer" value="$(arg enable_gridmap_transformer)" />
+    <arg name="enable_safety" value="$(arg enable_safety)" />
+    <arg name="enable_quadrangels" value="$(arg enable_quadrangels)" />
+  </include>
+</launch>

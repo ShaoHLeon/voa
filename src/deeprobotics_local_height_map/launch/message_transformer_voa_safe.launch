@@ -1,0 +1,10 @@
+<launch>
+  <!--
+    Start message_transformer for VOA safety mode.
+
+    ros2qnx subscribes both "cmd_vel" and "cmd_vel_corrected". Remap its raw
+    cmd_vel subscription away so only /cmd_vel_corrected reaches the robot.
+  -->
+  <remap from="cmd_vel" to="/cmd_vel_disabled_by_voa" />
+  <include file="$(find message_transformer)/launch/message_transformer.launch" />
+</launch>

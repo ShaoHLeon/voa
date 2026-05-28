@@ -1,0 +1,112 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Views
+    Name: Views
+  - Class: rviz/Time
+    Name: Time
+    SyncMode: 0
+    SyncSource: ""
+
+Visualization Manager:
+  Class: ""
+  Enabled: true
+
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: odom
+    Frame Rate: 30
+
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.5
+      Plane: XY
+      Plane Cell Count: 20
+      Color: 160; 160; 160
+      Alpha: 0.5
+      Reference Frame: <Fixed Frame>
+
+    - Class: rviz/TF
+      Name: TF
+      Enabled: true
+      Frame Timeout: 15
+      Marker Scale: 0.6
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Update Interval: 0
+      Frames:
+        All Enabled: true
+
+    - Class: rviz/PointCloud2
+      Name: RealSense_PointCloud
+      Enabled: true
+      Topic: /camera/depth/color/points
+      Queue Size: 3
+      Style: Flat Squares
+      Size (m): 0.025
+      Size (Pixels): 3
+      Alpha: 1
+      Color Transformer: AxisColor
+      Axis: Z
+      Position Transformer: XYZ
+      Use Fixed Frame: true
+      Selectable: true
+      Decay Time: 0
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Value: true
+        Min Value: -1
+        Max Value: 2
+      Invert Rainbow: false
+      Use rainbow: true
+      Unreliable: false
+
+    - Class: grid_map_rviz_plugin/GridMap
+      Name: Elevation_Map
+      Enabled: true
+      Topic: /elevation_mapping/elevation_map
+      Height Layer: elevation
+      Height Transformer: Layer
+      Color Transformer: Intensity
+      Color Layer: elevation
+      Alpha: 1
+      Show Grid Lines: false
+      History Length: 1
+      Min Intensity: -0.3
+      Max Intensity: 0.6
+      Invert Rainbow: false
+      Use Rainbow: true
+      Unreliable: false
+
+    - Class: rviz/RobotModel
+      Name: RobotModel
+      Enabled: false
+      Robot Description: robot_description
+      Alpha: 0.8
+      Visual Enabled: true
+      Collision Enabled: false
+      TF Prefix: ""
+
+  Tools:
+    - Class: rviz/Interact
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 5
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Pitch: 0.7
+      Yaw: 0.8
+      Target Frame: base_link
+      Name: Current View
